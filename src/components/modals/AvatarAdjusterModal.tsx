@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ZoomIn, RotateCcw, X, Loader2, Check } from 'lucide-react';
 
 export interface AvatarAdjusterModalProps {
@@ -7,6 +7,9 @@ export interface AvatarAdjusterModalProps {
   onConfirm: (blob: Blob) => Promise<void>;
   isUploading: boolean;
 }
+
+const CONTAINER_SIZE = 220; // Đường kính khung tròn hiển thị (pixel)
+const CANVAS_SIZE = 500;    // Độ phân giải ảnh avatar xuất ra (500x500)
 
 export const AvatarAdjusterModal = ({
   imageSrc,
@@ -18,8 +21,40 @@ export const AvatarAdjusterModal = ({
   const [posX, setPosX] = useState(0);
   const [posY, setPosY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [naturalSize, setNaturalSize] = useState<{ nw: number; nh: number }>({
+    nw: CONTAINER_SIZE,
+    nh: CONTAINER_SIZE
+  });
+
   const dragStart = useRef({ x: 0, y: 0, initialPosX: 0, initialPosY: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Xác định kích thước gốc của ảnh
+  useEffect(() => {
+    const img = new Image();
+    img.src = imageSrc;
+    const update = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setNaturalSize({ nw: img.naturalWidth, nh: img.naturalHeight });
+      }
+    };
+    if (img.complete && img.naturalWidth) {
+      update();
+    } else {
+      img.onload = update;
+    }
+  }, [imageSrc]);
+
+  // Tính toán tỉ lệ chuẩn để ảnh lấp đầy khung tròn (object-cover)
+  const nw = naturalSize.nw || CONTAINER_SIZE;
+  const nh = naturalSize.nh || CONTAINER_SIZE;
+  const baseScale = Math.max(CONTAINER_SIZE / nw, CONTAINER_SIZE / nh);
+  const baseWidth = nw * baseScale;
+  const baseHeight = nh * baseScale;
+
+  // Giới hạn kéo thả linh hoạt theo kích thước ảnh sau zoom
+  const maxDragX = Math.max(120, Math.round((baseWidth * zoom) / 2));
+  const maxDragY = Math.max(120, Math.round((baseHeight * zoom) / 2));
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -63,37 +98,47 @@ export const AvatarAdjusterModal = ({
 
   const handleTouchEnd = () => setIsDragging(false);
 
+  // Hỗ trợ lăn chuột để phóng to / thu nhỏ tiện lợi
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    setZoom(prev => Math.min(Math.max(1, +(prev + delta).toFixed(2)), 3));
+  };
+
   const handleReset = () => {
     setZoom(1);
     setPosX(0);
     setPosY(0);
   };
 
+  // Cắt ảnh chính xác từng pixel đúng với vị trí người dùng nhìn thấy trong preview
   const handleCropAndSave = () => {
     const img = imgRef.current;
     if (!img) return;
 
     const canvas = document.createElement('canvas');
-    const CANVAS_SIZE = 400;
     canvas.width = CANVAS_SIZE;
     canvas.height = CANVAS_SIZE;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const wrapper = img.parentElement;
-    const wrapperSize = wrapper ? wrapper.offsetWidth : 208;
-    const scaleRatio = CANVAS_SIZE / wrapperSize;
-
-    const nw = img.naturalWidth || CANVAS_SIZE;
-    const nh = img.naturalHeight || CANVAS_SIZE;
-    const baseScale = Math.max(wrapperSize / nw, wrapperSize / nh);
+    // Tỉ lệ scale đồng nhất giữa Canvas xuất ra và Khung tròn preview
+    const ratio = CANVAS_SIZE / CONTAINER_SIZE;
 
     ctx.save();
+    // 1. Dời gốc tọa độ về tâm của Canvas
     ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
-    ctx.translate(posX * scaleRatio, posY * scaleRatio);
+
+    // 2. Dịch chuyển theo đúng tọa độ người dùng đã căn chỉnh
+    ctx.translate(posX * ratio, posY * ratio);
+
+    // 3. Phóng to theo đúng mức zoom
     ctx.scale(zoom, zoom);
-    const drawW = nw * baseScale * scaleRatio;
-    const drawH = nh * baseScale * scaleRatio;
+
+    // 4. Kích thước vẽ ảnh đồng bộ 100% với khung xem trước
+    const drawW = baseWidth * ratio;
+    const drawH = baseHeight * ratio;
+
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
 
@@ -104,7 +149,7 @@ export const AvatarAdjusterModal = ({
         }
       },
       'image/jpeg',
-      0.92
+      0.95
     );
   };
 
@@ -117,7 +162,7 @@ export const AvatarAdjusterModal = ({
               Điều chỉnh khung hình Avatar
             </h3>
             <p className="text-xs text-stone-400">
-              Kéo hoặc dùng thanh trượt để ảnh vừa vặn khung tròn
+              Kéo hoặc lăn chuột để ảnh vừa vặn khung tròn hoàn hảo
             </p>
           </div>
           <button
@@ -130,10 +175,11 @@ export const AvatarAdjusterModal = ({
           </button>
         </div>
 
-        {/* Khung xem trước hình tròn */}
+        {/* Khung xem trước hình tròn chuẩn xác 100% */}
         <div className="flex justify-center py-2">
           <div
-            className="relative w-52 h-52 rounded-full overflow-hidden border-4 border-rose-300 shadow-lg cursor-grab active:cursor-grabbing bg-stone-100 select-none touch-none"
+            style={{ width: `${CONTAINER_SIZE}px`, height: `${CONTAINER_SIZE}px` }}
+            className="relative rounded-full overflow-hidden border-4 border-rose-300 shadow-xl cursor-grab active:cursor-grabbing bg-stone-100 select-none touch-none ring-4 ring-rose-100/50"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -141,22 +187,37 @@ export const AvatarAdjusterModal = ({
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onWheel={handleWheel}
           >
             <img
               ref={imgRef}
               src={imageSrc}
               alt="Avatar adjustment"
               draggable={false}
+              onLoad={e => {
+                const t = e.currentTarget;
+                if (t.naturalWidth && t.naturalHeight) {
+                  setNaturalSize({ nw: t.naturalWidth, nh: t.naturalHeight });
+                }
+              }}
               style={{
-                transform: `translate(${posX}px, ${posY}px) scale(${zoom})`,
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                width: `${baseWidth}px`,
+                height: `${baseHeight}px`,
+                maxWidth: 'none',
+                maxHeight: 'none',
+                transform: `translate(-50%, -50%) translate(${posX}px, ${posY}px) scale(${zoom})`,
                 transformOrigin: 'center center',
                 transition: isDragging ? 'none' : 'transform 0.05s ease-out'
               }}
-              className="w-full h-full object-contain pointer-events-none select-none"
+              className="pointer-events-none select-none"
             />
-            <div className="absolute inset-0 pointer-events-none rounded-full ring-1 ring-inset ring-black/10 flex items-center justify-center opacity-0 hover:opacity-100 transition">
-              <span className="text-[10px] text-white bg-black/50 px-2 py-0.5 rounded-full">
-                Kéo để di chuyển
+            {/* Vòng viền định vị tinh tế */}
+            <div className="absolute inset-0 pointer-events-none rounded-full ring-1 ring-inset ring-black/10 flex items-center justify-center">
+              <span className="text-[10px] text-white/90 bg-black/40 px-2 py-0.5 rounded-full opacity-0 hover:opacity-100 transition">
+                Kéo ảnh để căn chỉnh
               </span>
             </div>
           </div>
@@ -192,8 +253,8 @@ export const AvatarAdjusterModal = ({
               </div>
               <input
                 type="range"
-                min="-120"
-                max="120"
+                min={-maxDragX}
+                max={maxDragX}
                 value={posX}
                 onChange={e => setPosX(parseInt(e.target.value, 10))}
                 className="w-full accent-stone-400 cursor-pointer"
@@ -206,8 +267,8 @@ export const AvatarAdjusterModal = ({
               </div>
               <input
                 type="range"
-                min="-120"
-                max="120"
+                min={-maxDragY}
+                max={maxDragY}
                 value={posY}
                 onChange={e => setPosY(parseInt(e.target.value, 10))}
                 className="w-full accent-stone-400 cursor-pointer"
@@ -259,4 +320,5 @@ export const AvatarAdjusterModal = ({
     </div>
   );
 };
+
 export default AvatarAdjusterModal;

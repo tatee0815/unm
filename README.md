@@ -76,16 +76,6 @@ npm install
 ### 3. Cấu hình biến môi trường
 Tạo file `.env` ở thư mục gốc (dựa trên mẫu `.env.example`):
 
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-
-# Cloudinary Configuration
-VITE_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
-VITE_CLOUDINARY_UPLOAD_PRESET=your-cloudinary-upload-preset
-```
-
 ### 4. Khởi chạy ứng dụng
 ```bash
 # Chạy ở môi trường phát triển (Local dev)
