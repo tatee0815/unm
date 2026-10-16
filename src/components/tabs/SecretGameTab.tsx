@@ -19,7 +19,8 @@ import {
   Ticket,
   Eye,
   FastForward,
-  Play
+  Play,
+  Film
 } from 'lucide-react';
 
 // Nhập các tài nguyên ảnh kỷ niệm có sẵn trong src/assets/
@@ -29,6 +30,7 @@ import huggingImg from '../../assets/hugging.jpg';
 import phieu1Img from '../../assets/phieu1.jpg';
 import phieu2Img from '../../assets/phieu2.jpg';
 import phieu3Img from '../../assets/phieu3.jpg';
+import finalVideo from '../../assets/Final.mp4';
 
 // ==========================================
 // TYPES & DATA CHO MINI GAME TAB BÍ MẬT ("???")
@@ -501,12 +503,12 @@ export const SecretGameTab = ({ customImages }: SecretGameTabProps) => {
   // Tự động chuyển tiếp từng đoạn tâm thư để tăng cảm xúc
   useEffect(() => {
     if (viewMode !== 'letter' || !autoPlayLetter) return;
-    if (revealedLetterSteps >= 5) return;
+    if (revealedLetterSteps >= 6) return;
 
     const timer = setTimeout(() => {
       setRevealedLetterSteps(prev => {
         const next = prev + 1;
-        if (next === 5) {
+        if (next === 6) {
           triggerStationConfetti();
         }
         return next;
@@ -901,17 +903,17 @@ export const SecretGameTab = ({ customImages }: SecretGameTabProps) => {
           <div className="flex items-center justify-between border-b border-amber-100 pb-3 text-xs text-stone-500">
             <div className="flex items-center gap-1.5 font-medium">
               <Sparkles size={14} className="text-amber-500" />
-              <span>Đang hé mở tâm tình: Bước {revealedLetterSteps}/5</span>
+              <span>Đang hé mở tâm tình: Bước {revealedLetterSteps}/6</span>
             </div>
             <div className="flex items-center gap-2">
-              {revealedLetterSteps < 5 ? (
+              {revealedLetterSteps < 6 ? (
                 <>
                   <button
                     type="button"
                     onClick={() => {
                       setRevealedLetterSteps(prev => {
-                        const next = Math.min(prev + 1, 5);
-                        if (next === 5) triggerStationConfetti();
+                        const next = Math.min(prev + 1, 6);
+                        if (next === 6) triggerStationConfetti();
                         return next;
                       });
                     }}
@@ -922,7 +924,7 @@ export const SecretGameTab = ({ customImages }: SecretGameTabProps) => {
                   <button
                     type="button"
                     onClick={() => {
-                      setRevealedLetterSteps(5);
+                      setRevealedLetterSteps(6);
                       setAutoPlayLetter(false);
                       triggerStationConfetti();
                     }}
@@ -1087,6 +1089,49 @@ export const SecretGameTab = ({ customImages }: SecretGameTabProps) => {
                     </div>
                   </motion.div>
                 ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* BƯỚC 6: THƯỚC PHIM KỶ NIỆM BUỔI HẸN - MỤC CUỐI CÙNG TRONG BỨC TÂM THƯ */}
+          {revealedLetterSteps >= 6 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 25 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-rose-50/95 via-pink-50/80 to-amber-50/95 border-2 border-rose-300 shadow-xl space-y-6"
+            >
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-rose-200/80 text-rose-800 text-xs sm:text-sm font-bold shadow-xs">
+                  <Film size={16} className="text-rose-600" />
+                  <span>Thước phim kỷ niệm • Món quà cuối cùng</span>
+                </div>
+                <h3 className="font-romantic text-2xl sm:text-3xl md:text-4xl font-bold text-rose-950">
+                  Thước Phim Ngày Đầu Gặp Gỡ🎬💖
+                </h3>
+                <p className="text-xs sm:text-sm md:text-base text-stone-600 max-w-lg mx-auto">
+                  Đây là đôi lời nhắn nhủ của tui... Gửi tặng người đang ngồi cạnh tui nhé!
+                </p>
+              </div>
+
+              {/* KHUNG PHÁT VIDEO */}
+              <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden p-1.5 sm:p-2 bg-gradient-to-tr from-amber-200 via-rose-300 to-pink-300 shadow-xl ring-2 ring-white/80">
+                <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-inner">
+                  <video
+                    src={finalVideo}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full max-h-[460px] sm:max-h-[520px] object-contain rounded-xl sm:rounded-2xl"
+                  >
+                    Trình duyệt của bạn không hỗ trợ phát video này.
+                  </video>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-stone-500 italic">
+                <Sparkles size={14} className="text-amber-500 shrink-0" />
+                <span>Nhấn Play và bật âm thanh để lắng nghe trọn vẹn những rung động nhỏ bé nhé 🎧🌸</span>
               </div>
             </motion.div>
           )}
