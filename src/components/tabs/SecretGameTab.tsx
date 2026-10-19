@@ -993,7 +993,7 @@ export const SecretGameTab = ({ customImages }: SecretGameTabProps) => {
               className="p-5 sm:p-7 rounded-3xl bg-rose-50/50 border border-rose-200/70 shadow-sm"
             >
               <p className="font-sans text-base sm:text-lg md:text-xl text-stone-800 leading-relaxed sm:leading-9">
-                Cảm ơn bạn vì đã bước ra từ màn hình điện thoại để cùng có mặt trong buổi gặp gỡ hôm nay; vượt qua những bỡ ngỡ ban đầu để chúng mình có một buổi hẹn trọn vẹn, nhiều tiếng cười và sự an tâm khó tả. Khoảng cách giữa hai chiếc màn hình ảo cuối cùng đã được khỏa lấp bằng một buổi chiều thật trọn vẹn.
+                Cảm ơn cậu vì đã bước ra từ màn hình điện thoại để cùng có mặt trong buổi gặp gỡ hôm nay; vượt qua những bỡ ngỡ ban đầu để chúng mình có một buổi hẹn trọn vẹn, nhiều tiếng cười và sự an tâm khó tả. Khoảng cách giữa hai chiếc màn hình ảo cuối cùng đã được khỏa lấp bằng một buổi chiều thật trọn vẹn.
               </p>
             </motion.div>
           )}
@@ -1106,10 +1106,10 @@ export const SecretGameTab = ({ customImages }: SecretGameTabProps) => {
                   <Film size={16} className="text-rose-600" />
                   <span>Thước phim kỷ niệm • Món quà cuối cùng</span>
                 </div>
-                <h3 className="font-romantic text-2xl sm:text-3xl md:text-4xl font-bold text-rose-950">
-                  Thước Phim Ngày Đầu Gặp Gỡ🎬💖
+                <h3 className="font-romantic text-2xl sm:text-3xl md:text-4xl font-bold text-rose-950 text-balance leading-tight">
+                  Thước Phim Ngày Đầu Gặp Gỡ 🎬💖
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-stone-600 max-w-lg mx-auto">
+                <p className="text-xs sm:text-sm md:text-base text-stone-600 max-w-lg mx-auto text-balance">
                   Đây là đôi lời nhắn nhủ của tui... Gửi tặng người đang ngồi cạnh tui nhé!
                 </p>
               </div>

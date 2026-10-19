@@ -24,6 +24,16 @@ export default function App() {
 
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (viewPhoto) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = orig;
+      };
+    }
+  }, [viewPhoto]);
+
   // Trạng thái tab bí mật
   const [enableSecretTab, setEnableSecretTab] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -425,6 +435,7 @@ export default function App() {
         if (shouldBeInMilestones) {
           const mStr = JSON.stringify({
             id: newMemory.id,
+            title: newMemory.title,
             text: newMemory.content.trim() || newMemory.title,
             timestamp: new Date(selectedDateKey).toISOString(),
             photos: newMemory.photo_urls
@@ -539,10 +550,10 @@ export default function App() {
   // Lưu milestone trực tiếp từ profile
   const handleSaveMilestoneFromProfile = async (
     author: 'em' | 'anh',
-    milestone: { id: string; date: string; text: string; photos: string[] }
+    milestone: { id: string; date: string; title?: string; text: string; photos: string[] }
   ) => {
     const dateKey = milestone.date || todayKey;
-    const finalTitle = milestone.text.trim().split('\n')[0].slice(0, 40) || 'Kỷ niệm khó quên';
+    const finalTitle = milestone.title?.trim() || milestone.text.trim().split('\n')[0].slice(0, 40) || 'Kỷ niệm khó quên';
 
     const memoryItem: MemoryItem = {
       id: milestone.id,
@@ -569,6 +580,7 @@ export default function App() {
 
     const milestoneStr = JSON.stringify({
       id: milestone.id,
+      title: finalTitle,
       text: milestone.text,
       timestamp: new Date(dateKey).toISOString(),
       photos: milestone.photos
@@ -815,12 +827,14 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            style={{ zoom: 0.8 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 sm:p-8"
             onClick={() => setViewPhoto(null)}
           >
             <button
-              className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition cursor-pointer"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2.5 rounded-full bg-white/10 text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer z-10"
               onClick={() => setViewPhoto(null)}
+              title="Đóng xem ảnh"
             >
               <X size={24} />
             </button>
@@ -829,7 +843,7 @@ export default function App() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               src={viewPhoto}
-              className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+              className="max-w-[92vw] max-h-[88vh] w-auto h-auto object-contain rounded-2xl shadow-2xl select-none"
               onClick={e => e.stopPropagation()}
             />
           </motion.div>

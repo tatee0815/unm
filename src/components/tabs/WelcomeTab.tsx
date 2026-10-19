@@ -13,15 +13,15 @@ export const WelcomeTab = ({ onGoToMemories }: WelcomeTabProps) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
       transition={{ duration: 0.4 }}
-      className="text-center py-10 space-y-6 max-w-xl mx-auto"
+      className="text-center py-10 space-y-6 max-w-2xl mx-auto px-4"
     >
       <div className="w-16 h-16 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-400">
         <Sparkles size={28} />
       </div>
-      <h1 className="font-romantic text-4xl sm:text-5xl text-[#443333] font-semibold">
-        Xin chào, góc nhỏ của hai ta
+      <h1 className="font-romantic text-3xl sm:text-4xl md:text-5xl text-[#443333] font-semibold leading-tight text-balance">
+        Xin chào, <span className="inline-block">góc nhỏ của hai&nbsp;ta</span>
       </h1>
-      <p className="text-stone-500 leading-relaxed text-sm sm:text-base">
+      <p className="text-stone-500 leading-relaxed text-sm sm:text-base max-w-lg mx-auto text-balance">
         Nơi đây là một trang giấy yên tĩnh để lưu lại những mẩu chuyện nhỏ,
         những ngày thời tiết đẹp và những điều giản dị mà chúng mình cùng trải qua.
       </p>

@@ -3,6 +3,8 @@
  * Cho phép tải ảnh trực tiếp từ trình duyệt lên Cloudinary mà không cần backend và không lộ API Secret.
  */
 
+import { compressImage } from './imageCompressor';
+
 export const uploadToCloudinary = async (file: File | Blob): Promise<string> => {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -13,11 +15,14 @@ export const uploadToCloudinary = async (file: File | Blob): Promise<string> => 
     );
   }
 
+  // Tự động nén ảnh xuống chuẩn Web (Full HD / quality 80%) trước khi gửi
+  const fileToUpload = await compressImage(file);
+
   const formData = new FormData();
   formData.append(
     'file',
-    file,
-    file instanceof File ? file.name : 'image.jpg'
+    fileToUpload,
+    fileToUpload instanceof File ? fileToUpload.name : (file instanceof File ? file.name : 'image.jpg')
   );
   formData.append('upload_preset', uploadPreset);
 

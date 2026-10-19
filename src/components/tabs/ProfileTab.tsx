@@ -19,6 +19,52 @@ import { uploadToCloudinary } from '../../lib/cloudinary';
 import { AvatarAdjusterModal } from '../modals/AvatarAdjusterModal';
 import type { ProfileData, MemoriesRecord } from '../../types';
 
+const isoToVn = (iso: string): string => {
+  if (!iso) return '';
+  const parts = iso.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return iso;
+};
+
+const parseToIso = (text: string): string | null => {
+  const clean = text.trim();
+  // Khớp định dạng DD/MM/YYYY hoặc DD-MM-YYYY hoặc DD.MM.YYYY
+  const dmy = clean.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+  if (dmy) {
+    const day = parseInt(dmy[1], 10);
+    const month = parseInt(dmy[2], 10);
+    const year = parseInt(dmy[3], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 1900 && year <= 2100) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      if (day <= daysInMonth) {
+        const dd = String(day).padStart(2, '0');
+        const mm = String(month).padStart(2, '0');
+        return `${year}-${mm}-${dd}`;
+      }
+    }
+    return null;
+  }
+  // Khớp định dạng YYYY-MM-DD
+  const ymd = clean.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/);
+  if (ymd) {
+    const year = parseInt(ymd[1], 10);
+    const month = parseInt(ymd[2], 10);
+    const day = parseInt(ymd[3], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 1900 && year <= 2100) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      if (day <= daysInMonth) {
+        const dd = String(day).padStart(2, '0');
+        const mm = String(month).padStart(2, '0');
+        return `${year}-${mm}-${dd}`;
+      }
+    }
+    return null;
+  }
+  return null;
+};
+
 const CustomDatePicker = ({
   value,
   onChange,
@@ -29,10 +75,27 @@ const CustomDatePicker = ({
   className?: string;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [inputText, setInputText] = useState(() => isoToVn(value));
+  const [inputError, setInputError] = useState(false);
+  const [prevValue, setPrevValue] = useState(value);
   const [currentMonth, setCurrentMonth] = useState(() => {
     return value ? new Date(value) : new Date();
   });
   const popupRef = useRef<HTMLDivElement>(null);
+  const [todayDate] = useState(() => new Date());
+
+  // Đồng bộ khi value từ bên ngoài thay đổi (chuẩn React pattern)
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setInputText(isoToVn(value));
+    setInputError(false);
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        setCurrentMonth(d);
+      }
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -65,21 +128,84 @@ const CustomDatePicker = ({
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
     onChange(localISOTime);
+    setInputText(isoToVn(localISOTime));
+    setInputError(false);
     setIsOpen(false);
   };
 
-  const displayDate = value ? new Date(value).toLocaleDateString('vi-VN') : 'Chọn ngày';
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setInputText(text);
+
+    const parsedIso = parseToIso(text);
+    if (parsedIso) {
+      setInputError(false);
+      onChange(parsedIso);
+      const d = new Date(parsedIso);
+      if (!isNaN(d.getTime())) {
+        setCurrentMonth(d);
+      }
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (!inputText.trim()) {
+      setInputText(isoToVn(value));
+      setInputError(false);
+      return;
+    }
+    const parsedIso = parseToIso(inputText);
+    if (parsedIso) {
+      setInputText(isoToVn(parsedIso));
+      setInputError(false);
+      onChange(parsedIso);
+    } else {
+      setInputError(true);
+      setTimeout(() => {
+        setInputText(isoToVn(value));
+        setInputError(false);
+      }, 1800);
+    }
+  };
+
+  const today = todayDate;
 
   return (
-    <div className={`relative inline-block ${className || ''}`} ref={popupRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-3 px-3 py-1.5 w-full rounded-lg bg-sky-50/40 border border-sky-100 shadow-sm text-xs font-semibold text-sky-600 hover:border-sky-300 hover:bg-sky-50 transition cursor-pointer"
-      >
-        <span>{displayDate}</span>
-        <CalendarDays size={14} className="text-sky-500" />
-      </button>
+    <div className={`relative ${className || ''}`} ref={popupRef}>
+      <div className="flex items-center gap-1.5 w-full">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={inputText}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            placeholder="DD/MM/YYYY (VD: 25/12/2024)"
+            className={`w-full px-3 py-2 rounded-xl bg-sky-50/40 border text-xs font-semibold text-stone-700 transition focus:outline-none focus:ring-2 ${
+              inputError
+                ? 'border-rose-400 focus:ring-rose-200 bg-rose-50/30 text-rose-700'
+                : 'border-sky-100 focus:ring-sky-200 focus:border-sky-300'
+            }`}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center ${
+            isOpen
+              ? 'bg-sky-400 text-white border-sky-400 shadow-sm'
+              : 'bg-sky-50/60 hover:bg-sky-100 text-sky-600 border-sky-100'
+          }`}
+          title="Chọn ngày từ lịch"
+        >
+          <CalendarDays size={16} />
+        </button>
+      </div>
+
+      {inputError && (
+        <span className="text-[10px] text-rose-500 mt-1 block">
+          Ngày không hợp lệ (hãy nhập ngày/tháng/năm, VD: 20/10/2024)
+        </span>
+      )}
 
       <AnimatePresence>
         {isOpen && (
@@ -112,9 +238,9 @@ const CustomDatePicker = ({
                   new Date(value).getMonth() === currentMonth.getMonth() &&
                   new Date(value).getFullYear() === currentMonth.getFullYear();
 
-                const isToday = new Date().getDate() === d &&
-                  new Date().getMonth() === currentMonth.getMonth() &&
-                  new Date().getFullYear() === currentMonth.getFullYear();
+                const isToday = today.getDate() === d &&
+                  today.getMonth() === currentMonth.getMonth() &&
+                  today.getFullYear() === currentMonth.getFullYear();
 
                 return (
                   <button
@@ -160,7 +286,7 @@ const ProfileCard = ({
   onSave: (key: 'em' | 'anh', updated: ProfileData) => Promise<void>;
   onViewPhoto: (url: string) => void;
   memories?: MemoriesRecord;
-  onSaveMilestone?: (milestone: { id: string; date: string; text: string; photos: string[] }) => Promise<void>;
+  onSaveMilestone?: (milestone: { id: string; date: string; title?: string; text: string; photos: string[] }) => Promise<void>;
   onDeleteMilestone?: (id: string) => Promise<void>;
   showConfirm?: (message: string, onConfirm: () => void, title?: string) => void;
 }) => {
@@ -183,10 +309,11 @@ const ProfileCard = ({
   const [avatarError, setAvatarError] = useState('');
   const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
   const [formMilestoneDate, setFormMilestoneDate] = useState<string>('');
+  const [formMilestoneTitle, setFormMilestoneTitle] = useState<string>('');
 
   // Danh sách kỷ niệm khó quên: đồng bộ từ cả memories và profile.milestones
   const authorMilestones = (() => {
-    const list: { id: string; text: string; timestamp: string; photos: string[] }[] = [];
+    const list: { id: string; title?: string; text: string; timestamp: string; photos: string[] }[] = [];
     const seenIds = new Set<string>();
     const nonSpecialIds = new Set<string>();
 
@@ -201,7 +328,8 @@ const ProfileCard = ({
             seenIds.add(m.id);
             list.push({
               id: m.id,
-              text: m.content || m.title,
+              title: m.title || '',
+              text: m.content || m.title || '',
               timestamp: m.created_at || (m.date_key ? `${m.date_key}T00:00:00.000Z` : ''),
               photos: m.photo_urls || []
             });
@@ -218,6 +346,7 @@ const ProfileCard = ({
             seenIds.add(mData.id);
             list.push({
               id: mData.id,
+              title: mData.title || '',
               text: mData.text || '',
               timestamp: mData.timestamp || '',
               photos: mData.photos || []
@@ -229,6 +358,7 @@ const ProfileCard = ({
             seenIds.add(legacyId);
             list.push({
               id: legacyId,
+              title: '',
               text: mStr,
               timestamp: '',
               photos: []
@@ -357,17 +487,17 @@ const ProfileCard = ({
     e.preventDefault();
     setIsSavingMilestones(true);
     try {
-      const finalPhotos: string[] = [];
-      for (const p of formMilestonePhotos) {
-        if (p.file) {
-          const url = await uploadToCloudinary(p.file);
-          finalPhotos.push(url);
-        } else {
-          finalPhotos.push(p.url);
-        }
-      }
+      // Tải lên đồng loạt tất cả các ảnh mới song song bằng Promise.all
+      const finalPhotos = await Promise.all(
+        formMilestonePhotos.map(async (p) => {
+          if (p.file) {
+            return await uploadToCloudinary(p.file);
+          }
+          return p.url;
+        })
+      );
 
-      if (!formMilestones.trim() && finalPhotos.length === 0) {
+      if (!formMilestones.trim() && !formMilestoneTitle.trim() && finalPhotos.length === 0) {
         setIsEditingMilestones(false);
         return;
       }
@@ -381,6 +511,7 @@ const ProfileCard = ({
         await onSaveMilestone({
           id: milestoneId,
           date: milestoneDate,
+          title: formMilestoneTitle.trim(),
           text: formMilestones.trim(),
           photos: finalPhotos
         });
@@ -389,6 +520,7 @@ const ProfileCard = ({
         const currentMilestones = [...(profile.milestones || [])];
         const newMilestone = {
           id: milestoneId,
+          title: formMilestoneTitle.trim(),
           text: formMilestones.trim(),
           timestamp: finalTimestamp,
           photos: finalPhotos
@@ -405,6 +537,7 @@ const ProfileCard = ({
       }
 
       setIsEditingMilestones(false);
+      setFormMilestoneTitle('');
       setFormMilestones('');
       setFormMilestonePhotos([]);
       setEditingMilestoneId(null);
@@ -673,6 +806,7 @@ const ProfileCard = ({
           {!isEditingMilestones && (
             <button
               onClick={() => {
+                setFormMilestoneTitle('');
                 setFormMilestones('');
                 setFormMilestonePhotos([]);
                 setFormMilestoneDate(new Date().toISOString().split('T')[0]);
@@ -698,22 +832,40 @@ const ProfileCard = ({
               className="space-y-4 pt-2 overflow-hidden"
             >
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <label className="block text-xs font-semibold text-sky-600">Ngày diễn ra sự kiện</label>
+                <div>
+                  <label className="block text-xs font-semibold text-sky-600 mb-1">
+                    Ngày diễn ra sự kiện (nhập tay hoặc chọn lịch) 📅
+                  </label>
                   <CustomDatePicker
                     value={formMilestoneDate}
                     onChange={(val) => setFormMilestoneDate(val)}
-                    className="w-40"
+                    className="w-full sm:w-72"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-semibold text-sky-600 mb-1">Kỉ niệm đó như nào đó? 💌</label>
+                  <label className="block text-xs font-semibold text-sky-600 mb-1">
+                    Tiêu đề kỷ niệm ✨
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Tiêu đề (VD: Đi xem phim cùng nhau, Lần đầu gặp mặt...)"
+                    value={formMilestoneTitle}
+                    onChange={e => setFormMilestoneTitle(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-sky-50/40 border border-sky-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 text-stone-800 placeholder:text-stone-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-sky-600 mb-1">
+                    Kỉ niệm đó như nào đó? 💌
+                  </label>
                   <textarea
                     rows={4}
-                    placeholder="Kể nghe đi.."
+                    placeholder="Kể chi tiết nghe đi nè.."
                     value={formMilestones}
                     onChange={e => setFormMilestones(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-sky-50/40 border border-sky-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 resize-none leading-relaxed"
+                    className="w-full px-4 py-3 rounded-xl bg-sky-50/40 border border-sky-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 resize-none leading-relaxed text-stone-800 placeholder:text-stone-400"
                   />
                 </div>
               </div>
@@ -763,6 +915,7 @@ const ProfileCard = ({
                   type="button"
                   onClick={() => {
                     setIsEditingMilestones(false);
+                    setFormMilestoneTitle('');
                     setFormMilestones(profile.milestones?.join('\n') || '');
                     setFormMilestonePhotos(profile.milestone_photos?.map(url => ({ url })) || []);
                   }}
@@ -797,6 +950,7 @@ const ProfileCard = ({
                           <button
                             onClick={() => {
                               setEditingMilestoneId(mData.id);
+                              setFormMilestoneTitle(mData.title || '');
                               setFormMilestones(mData.text);
                               setFormMilestonePhotos(mData.photos ? mData.photos.map((url: string) => ({ url })) : []);
                               setFormMilestoneDate(mData.timestamp ? new Date(mData.timestamp).toISOString().split('T')[0] : '');
@@ -815,16 +969,28 @@ const ProfileCard = ({
                             <Trash2 size={15} />
                           </button>
                         </div>
-                        <div className="flex flex-col gap-2.5 pr-16">
+                        <div className="flex flex-col gap-2 pr-16">
                           {mData.timestamp && (
                             <div className="inline-flex items-center gap-1.5 bg-sky-50/80 text-sky-600 px-3 py-1 rounded-full font-semibold text-xs self-start shadow-sm border border-sky-100/60">
                               <CalendarDays size={14} className="text-sky-500" />
                               {new Date(mData.timestamp).toLocaleDateString('vi-VN')}
                             </div>
                           )}
-                          <p className="text-base text-[#4a3b3b] leading-relaxed whitespace-pre-wrap">
-                            {mData.text}
-                          </p>
+                          {mData.title && (
+                            <h4 className="font-semibold text-base sm:text-lg text-stone-800 tracking-tight">
+                              {mData.title}
+                            </h4>
+                          )}
+                          {mData.text && mData.text !== mData.title && (
+                            <p className="text-sm sm:text-base text-[#4a3b3b] leading-relaxed whitespace-pre-wrap">
+                              {mData.text}
+                            </p>
+                          )}
+                          {mData.text && !mData.title && (
+                            <p className="text-base text-[#4a3b3b] leading-relaxed whitespace-pre-wrap">
+                              {mData.text}
+                            </p>
+                          )}
                         </div>
                         {mData.photos && mData.photos.length > 0 && (
                           <div className="flex flex-wrap gap-3 mt-3">

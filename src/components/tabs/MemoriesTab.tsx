@@ -125,15 +125,15 @@ export const MemoriesTab = ({
     setMemoryPhotoError('');
 
     try {
-      const finalPhotoUrls: string[] = [];
-      for (const p of formPhotos) {
-        if (p.file) {
-          const url = await uploadToCloudinary(p.file);
-          finalPhotoUrls.push(url);
-        } else {
-          finalPhotoUrls.push(p.url);
-        }
-      }
+      // Tải lên đồng loạt tất cả các ảnh mới song song bằng Promise.all
+      const finalPhotoUrls = await Promise.all(
+        formPhotos.map(async (p) => {
+          if (p.file) {
+            return await uploadToCloudinary(p.file);
+          }
+          return p.url;
+        })
+      );
 
       const finalTitle = formTitle.trim() || 'Kỷ niệm hôm nay';
       const idToSave = editingMemoryId || crypto.randomUUID();

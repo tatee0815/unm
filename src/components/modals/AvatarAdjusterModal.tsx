@@ -154,8 +154,11 @@ export const AvatarAdjusterModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 border border-rose-100">
+    <div
+      style={{ zoom: 0.8 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+    >
+      <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 border border-rose-100 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-rose-50 pb-3">
           <div>
             <h3 className="font-romantic text-xl font-bold text-[#443333]">
