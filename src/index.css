@@ -51,3 +51,32 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
 }
+
+/* Biến màu chủ đạo đồng bộ cho Công cụ gửi tín hiệu nhanh */
+:root {
+  --signal-primary: var(--color-primary-500, #ec4899);
+  --signal-primary-soft: var(--color-primary-300, #f9a8d4);
+  --signal-accent: #fb7185;
+  --signal-surface: rgba(255, 250, 252, 0.94);
+  --signal-border: var(--color-primary-200, #fbcfe8);
+  --signal-glow: rgba(236, 72, 153, 0.38);
+}
+
+@keyframes signalPulseRing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(1.38);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.38);
+    opacity: 0;
+  }
+}
+
+.signal-pulse-ring {
+  animation: signalPulseRing 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}

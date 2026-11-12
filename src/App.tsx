@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
+import { getRemainingCooldownSeconds } from './lib/signalService';
 import type { MemoryItem, MemoriesRecord, ProfileData, DialogConfig } from './types';
 
 // Các component modular
@@ -12,6 +13,8 @@ import ProfileTab from './components/tabs/ProfileTab';
 import UsTab from './components/tabs/UsTab';
 import SecretGameTab from './components/tabs/SecretGameTab';
 import CustomDialog from './components/modals/CustomDialog';
+import FloatingSignalButton from './components/FloatingSignalButton';
+import SendSignalModal from './components/modals/SendSignalModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -23,6 +26,21 @@ export default function App() {
   }, [activeTab]);
 
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+
+  // Trạng thái công cụ gửi tín hiệu nhanh qua Email (Google Apps Script)
+  const [isSignalModalOpen, setIsSignalModalOpen] = useState(false);
+  const [signalCooldown, setSignalCooldown] = useState<number>(() =>
+    getRemainingCooldownSeconds()
+  );
+
+  useEffect(() => {
+    if (signalCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      const remaining = getRemainingCooldownSeconds();
+      setSignalCooldown(remaining);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [signalCooldown]);
 
   useEffect(() => {
     if (viewPhoto) {
@@ -819,6 +837,24 @@ export default function App() {
 
       {/* DIALOG TUỲ CHỈNH */}
       <CustomDialog dialogConfig={dialogConfig} onClose={closeDialog} />
+
+      {/* NÚT CÔNG CỤ NỔI & HỘP THOẠI GỬI TÍN HIỆU QUA EMAIL */}
+      <FloatingSignalButton
+        onClick={() => {
+          setSignalCooldown(getRemainingCooldownSeconds());
+          setIsSignalModalOpen(true);
+        }}
+        cooldownSeconds={signalCooldown}
+        isModalOpen={isSignalModalOpen}
+      />
+
+      <SendSignalModal
+        isOpen={isSignalModalOpen}
+        onClose={() => setIsSignalModalOpen(false)}
+        profiles={profiles}
+        cooldownSeconds={signalCooldown}
+        onSignalSent={() => setSignalCooldown(getRemainingCooldownSeconds())}
+      />
 
       {/* MODAL XEM ẢNH TOÀN CỤC */}
       <AnimatePresence>
